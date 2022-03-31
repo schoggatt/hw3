@@ -1,6 +1,3 @@
-/*
- */
-
 #include <gtest/gtest.h>
 #include <sys/stat.h>
 #include "block_store.h"
