@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <sys/stat.h>
 #include "block_store.h"
+//#include "./src/block_store.c"
 
 // The object is opaque, so we can't really test things directly....
 

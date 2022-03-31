@@ -1,8 +1,12 @@
 #include <stdio.h>
+#include <stdbool.h>
+#include <string.h>
 #include <stdint.h>
+#include <unistd.h>
 #include <fcntl.h>
 #include "bitmap.h"
 #include "block_store.h"
+
 // include more if you need
 
 // You might find this handy.  I put it around unused parameters, but you should
@@ -10,30 +14,22 @@
 
 #define UNUSED(x) (void)(x)
 
-#define BYTES_PER_BITMAP 32
-#define BLOCKS_PER_BLOCK_STORE 256
-
-#define BYTES_PER_BLOCK 256
-#define BLOCK_BITS (BYTES_PER_BLOCK *)
-
-#define BLOCK_STORE_TOTAL_BYTES (BLOCKS_PER_BLOCK_STORE * BYTES_PER_BLOCK)
-
 typedef struct block_store
 {
     bitmap_t *bitmap;
-    char arr[BLOCKS_PER_BLOCK_STORE - 1][BLOCKS_PER_BLOCK_STORE - 1];
+    char arr[BLOCK_STORE_AVAIL_BLOCKS][BLOCK_STORE_AVAIL_BLOCKS];
 } block_store_t;
 
 block_store_t *block_store_create()
 {
-    block_store_t *bs = malloc(sizeof(block_store_t));
+    block_store_t *bs = (block_store_t *)malloc(sizeof(block_store_t));
 
     if (bs == NULL)
     {
         return NULL;
     }
 
-    bs->bitmap = bitmap_create(BYTES_PER_BLOCK);
+    bs->bitmap = bitmap_create(BLOCK_STORE_NUM_BLOCKS);
 
     if (bs->bitmap == NULL)
     {
@@ -60,7 +56,7 @@ size_t block_store_allocate(block_store_t *const bs)
 
     size_t bm = bitmap_ffz(bs->bitmap);
 
-    if (bm >= (BLOCKS_PER_BLOCK_STORE - 1) || bm == SIZE_MAX)
+    if (bm >= (BLOCK_STORE_AVAIL_BLOCKS) || bm == SIZE_MAX)
     {
         return SIZE_MAX;
     }
@@ -71,7 +67,7 @@ size_t block_store_allocate(block_store_t *const bs)
 
 bool block_store_request(block_store_t *const bs, const size_t block_id)
 {
-    if (bs == NULL || block_id > (BLOCKS_PER_BLOCK_STORE - 1) || block_id == 0 || bitmap_test(bs->bitmap, block_id))
+    if (bs == NULL || block_id > (BLOCK_STORE_AVAIL_BLOCKS) || block_id == 0 || bitmap_test(bs->bitmap, block_id))
     {
         return false;
     }
@@ -82,7 +78,7 @@ bool block_store_request(block_store_t *const bs, const size_t block_id)
 
 void block_store_release(block_store_t *const bs, const size_t block_id)
 {
-    if (bs == NULL || block_id > (BLOCKS_PER_BLOCK_STORE - 1))
+    if (bs == NULL || block_id > (BLOCK_STORE_AVAIL_BLOCKS))
     {
         return;
     }
@@ -105,24 +101,24 @@ size_t block_store_get_free_blocks(const block_store_t *const bs)
     {
         return SIZE_MAX;
     }
-    return (BLOCKS_PER_BLOCK_STORE - 1) - bitmap_total_set(bs->bitmap);
+    return (BLOCK_STORE_AVAIL_BLOCKS) - bitmap_total_set(bs->bitmap);
 }
 
 size_t block_store_get_total_blocks()
 {
-    return (BLOCKS_PER_BLOCK_STORE - 1);
+    return (BLOCK_STORE_AVAIL_BLOCKS);
 }
 
 size_t block_store_read(const block_store_t *const bs, const size_t block_id, void *buffer)
 {
-    if (bs == NULL || buffer == NULL || block_id > (BLOCKS_PER_BLOCK_STORE - 1) || block_id == 0)
+    if (bs == NULL || buffer == NULL || block_id > (BLOCK_STORE_AVAIL_BLOCKS) || block_id == 0)
     {
         return 0;
     }
 
-    memcpy(buffer, bs->arr[block_id], BLOCKS_PER_BLOCK_STORE);
+    memcpy(buffer, bs->arr[block_id], BLOCK_STORE_NUM_BLOCKS);
 
-    return BLOCKS_PER_BLOCK_STORE;
+    return BLOCK_STORE_NUM_BLOCKS;
 }
 
 size_t block_store_write(block_store_t *const bs, const size_t block_id, const void *buffer)
@@ -132,8 +128,8 @@ size_t block_store_write(block_store_t *const bs, const size_t block_id, const v
         return 0;
     }
 
-    memcpy(bs->arr[block_id], buffer, BLOCKS_PER_BLOCK_STORE);
-    return BLOCKS_PER_BLOCK_STORE;
+    memcpy(bs->arr[block_id], buffer, BLOCK_STORE_NUM_BLOCKS);
+    return BLOCK_STORE_NUM_BLOCKS;
 }
 
 block_store_t *block_store_deserialize(const char *const filename)
@@ -151,7 +147,7 @@ block_store_t *block_store_deserialize(const char *const filename)
         return NULL;
     }
 
-    read(file, bs, BLOCKS_PER_BLOCK_STORE * BLOCKS_PER_BLOCK_STORE);
+    read(file, bs, BLOCK_STORE_NUM_BLOCKS*BLOCK_STORE_NUM_BLOCKS);
     close(file);
     return bs;
 }
@@ -165,13 +161,8 @@ size_t block_store_serialize(const block_store_t *const bs, const char *const fi
 
     int file = open(filename, O_CREAT | O_WRONLY);
 
-    if (file == -1)
-    {
-        return NULL;
-    }
-
-    write(file, bs, BLOCKS_PER_BLOCK_STORE * BLOCKS_PER_BLOCK_STORE);
+    write(file, bs, BLOCK_STORE_NUM_BLOCKS*BLOCK_STORE_NUM_BLOCKS);
 
     close(file);
-    return BLOCK_STORE_TOTAL_BYTES;
+    return BLOCK_STORE_NUM_BYTES;
 }
