@@ -341,6 +341,8 @@ TEST(block_store_serialize, valid_serialize)
     free(write_buffer);
     block_store_destroy(bs);
 
+    remove("test.bs");
+
     score += 10;
 }
 
@@ -377,6 +379,8 @@ TEST(block_store_serialize, check_file_size)
     struct stat st;
     stat("test.bs", &st);
     ASSERT_EQ(st.st_size,BLOCK_STORE_NUM_BYTES);
+
+    remove("test.bs");
 
     score += 4;
 }
@@ -421,7 +425,7 @@ TEST(block_store_deserialize, valid_deserialize)
     size_t id = 10;
     bool success = false;
     success = block_store_request(bsWrite, id);
-    ASSERT_EQ(true, success);
+    ASSERT_EQ(true, success) << "block_store_request returned false when it should not have\n";
 
     // Next write to the block store...
     uint8_t *write_buffer = (uint8_t *) calloc(1, BLOCK_SIZE_BYTES);
@@ -438,7 +442,7 @@ TEST(block_store_deserialize, valid_deserialize)
     // Try to call serialize...
     size_t bytesSerialized;
     bytesSerialized = block_store_serialize(bsWrite, "test.bs");
-    ASSERT_EQ(bytesSerialized, BLOCK_STORE_NUM_BYTES);
+    ASSERT_EQ(bytesSerialized, BLOCK_STORE_NUM_BYTES) << "wrong amount of bytes serialized\n";
 
     // Don't free the write_buffer because we will use it later to compare
     // to the read
@@ -450,13 +454,13 @@ TEST(block_store_deserialize, valid_deserialize)
 
     // Try to call deserialize...
     bsRead = block_store_deserialize("test.bs");
-    ASSERT_NE(nullptr, bsRead);
+    ASSERT_NE(nullptr, bsRead) << "block_store_deserialize returned a null pointer\n";
 
     // Make sure that we can't reallocate a block that should
     // be already marked as in use.
     success = false;
     success = block_store_request(bsRead, id);
-    ASSERT_EQ(false, success);
+    ASSERT_EQ(false, success) << "reallocated block that should not be available\n";
 
     // Now read from the block store...
     uint8_t *read_buffer = (uint8_t *) calloc(1, BLOCK_SIZE_BYTES);
@@ -470,6 +474,8 @@ TEST(block_store_deserialize, valid_deserialize)
     free(read_buffer);
     free(write_buffer);
     block_store_destroy(bsRead);
+
+    remove("test.bs");
 
     score += 12;
 }

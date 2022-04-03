@@ -29,7 +29,17 @@ block_store_t *block_store_create()
         return NULL;
     }
 
+    // bs->bitmap = bitmap_overlay(BLOCK_STORE_NUM_BLOCKS, (bs->arr)[BITMAP_START_BLOCK]);
     bs->bitmap = bitmap_create(BLOCK_STORE_NUM_BLOCKS);
+    // bool completed = bitmap_set(bs->bitmap, BITMAP_START_BLOCK);
+
+    // if(completed)
+    // {
+    //     return NULL;
+    // }
+
+    // int i;
+    // for(i = 0; i < )
 
     if (bs->bitmap == NULL)
     {
@@ -160,6 +170,11 @@ size_t block_store_serialize(const block_store_t *const bs, const char *const fi
     }
 
     int file = open(filename, O_CREAT | O_WRONLY);
+
+    if (file == -1)
+    {
+        return 0;
+    }
 
     write(file, bs, BLOCK_STORE_NUM_BLOCKS*BLOCK_STORE_NUM_BLOCKS);
 
