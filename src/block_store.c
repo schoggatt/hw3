@@ -14,14 +14,27 @@
 
 #define UNUSED(x) (void)(x)
 
+typedef struct block
+{
+    unsigned char block[BLOCK_SIZE_BYTES];
+} block_t;
+
+// typedef struct block_store
+// {
+//     bitmap_t *bitmap;
+//     char blocks[BLOCK_STORE_AVAIL_BLOCKS][BLOCK_STORE_AVAIL_BLOCKS];
+// } block_store_t;
+
 typedef struct block_store
 {
-    bitmap_t *bitmap;
-    char arr[BLOCK_STORE_AVAIL_BLOCKS][BLOCK_STORE_AVAIL_BLOCKS];
+    bitmap_t * bitmap;
+    block_t blocks[BLOCK_STORE_NUM_BLOCKS];
+    uint32_t bitmap_blocks;
 } block_store_t;
 
 block_store_t *block_store_create()
 {
+    // calloc
     block_store_t *bs = (block_store_t *)malloc(sizeof(block_store_t));
 
     if (bs == NULL)
@@ -29,17 +42,16 @@ block_store_t *block_store_create()
         return NULL;
     }
 
-    // bs->bitmap = bitmap_overlay(BLOCK_STORE_NUM_BLOCKS, (bs->arr)[BITMAP_START_BLOCK]);
-    bs->bitmap = bitmap_create(BLOCK_STORE_NUM_BLOCKS);
-    // bool completed = bitmap_set(bs->bitmap, BITMAP_START_BLOCK);
+    bs->bitmap = bitmap_overlay(BLOCK_STORE_NUM_BLOCKS, &((bs->blocks)[BITMAP_START_BLOCK]));
 
-    // if(completed)
-    // {
-    //     return NULL;
-    // }
+    uint32_t required_blocks = (BLOCK_STORE_NUM_BLOCKS / 8) / 32;
+    uint32_t bitmap_index;
+    for(bitmap_index = BITMAP_START_BLOCK; bitmap_index < BITMAP_START_BLOCK + required_blocks; bitmap_index++)
+    {
+        if(!block_store_request(bs, bitmap_index)) break;
+    }
 
-    // int i;
-    // for(i = 0; i < )
+    bs->bitmap_blocks = required_blocks;
 
     if (bs->bitmap == NULL)
     {
@@ -53,31 +65,34 @@ void block_store_destroy(block_store_t *const bs)
 {
     if (bs != NULL)
     {
-        bitmap_destroy(bs->bitmap);
+        if(bs->bitmap != NULL)
+        {
+            bitmap_destroy(bs->bitmap);
+        }
         free(bs);
     }
 }
 size_t block_store_allocate(block_store_t *const bs)
 {
-    if (bs == NULL)
+    if (bs == NULL || bs->bitmap == NULL)
     {
         return SIZE_MAX;
     }
 
-    size_t bm = bitmap_ffz(bs->bitmap);
+    size_t block_id = bitmap_ffz(bs->bitmap);
 
-    if (bm >= (BLOCK_STORE_AVAIL_BLOCKS) || bm == SIZE_MAX)
+    if (block_id >= (BLOCK_STORE_AVAIL_BLOCKS) || block_id == SIZE_MAX)
     {
         return SIZE_MAX;
     }
 
-    bitmap_set(bs->bitmap, bm);
-    return bm;
+    bitmap_set(bs->bitmap, block_id);
+    return block_id;
 }
 
 bool block_store_request(block_store_t *const bs, const size_t block_id)
 {
-    if (bs == NULL || block_id > (BLOCK_STORE_AVAIL_BLOCKS) || block_id == 0 || bitmap_test(bs->bitmap, block_id))
+    if (bs == NULL || bs->bitmap == NULL || block_id >= (BLOCK_STORE_AVAIL_BLOCKS) || bitmap_test(bs->bitmap, block_id))
     {
         return false;
     }
@@ -88,7 +103,7 @@ bool block_store_request(block_store_t *const bs, const size_t block_id)
 
 void block_store_release(block_store_t *const bs, const size_t block_id)
 {
-    if (bs == NULL || block_id > (BLOCK_STORE_AVAIL_BLOCKS))
+    if (bs == NULL || block_id >= (BLOCK_STORE_AVAIL_BLOCKS))
     {
         return;
     }
@@ -102,7 +117,7 @@ size_t block_store_get_used_blocks(const block_store_t *const bs)
     {
         return SIZE_MAX;
     }
-    return bitmap_total_set(bs->bitmap);
+    return bitmap_total_set(bs->bitmap) - (bs->bitmap_blocks);
 }
 
 size_t block_store_get_free_blocks(const block_store_t *const bs)
@@ -111,7 +126,7 @@ size_t block_store_get_free_blocks(const block_store_t *const bs)
     {
         return SIZE_MAX;
     }
-    return (BLOCK_STORE_AVAIL_BLOCKS) - bitmap_total_set(bs->bitmap);
+    return (BLOCK_STORE_AVAIL_BLOCKS) - block_store_get_used_blocks(bs);
 }
 
 size_t block_store_get_total_blocks()
@@ -126,19 +141,21 @@ size_t block_store_read(const block_store_t *const bs, const size_t block_id, vo
         return 0;
     }
 
-    memcpy(buffer, bs->arr[block_id], BLOCK_STORE_NUM_BLOCKS);
+    // turn into void pointer
+    memcpy(buffer, &(bs->blocks)[block_id], BLOCK_STORE_NUM_BLOCKS);
 
     return BLOCK_STORE_NUM_BLOCKS;
 }
 
 size_t block_store_write(block_store_t *const bs, const size_t block_id, const void *buffer)
 {
-    if (bs == NULL || buffer == NULL || block_id == 0)
+    if (bs == NULL || buffer == NULL)
     {
         return 0;
     }
 
-    memcpy(bs->arr[block_id], buffer, BLOCK_STORE_NUM_BLOCKS);
+    // make into a void pointer
+    memcpy(&(bs->blocks)[block_id], buffer, BLOCK_STORE_NUM_BLOCKS);
     return BLOCK_STORE_NUM_BLOCKS;
 }
 
@@ -157,7 +174,7 @@ block_store_t *block_store_deserialize(const char *const filename)
         return NULL;
     }
 
-    read(file, bs, BLOCK_STORE_NUM_BLOCKS*BLOCK_STORE_NUM_BLOCKS);
+    read(file, bs->blocks, BLOCK_STORE_NUM_BLOCKS * BLOCK_STORE_NUM_BLOCKS);
     close(file);
     return bs;
 }
@@ -169,15 +186,15 @@ size_t block_store_serialize(const block_store_t *const bs, const char *const fi
         return 0;
     }
 
-    int file = open(filename, O_CREAT | O_WRONLY);
+    int file = creat(filename, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
     if (file == -1)
     {
         return 0;
     }
 
-    write(file, bs, BLOCK_STORE_NUM_BLOCKS*BLOCK_STORE_NUM_BLOCKS);
+    size_t bytes_written = write(file, bs->blocks, BLOCK_STORE_NUM_BLOCKS * BLOCK_STORE_NUM_BLOCKS);
 
     close(file);
-    return BLOCK_STORE_NUM_BYTES;
+    return bytes_written;
 }
