@@ -19,12 +19,6 @@ typedef struct block
     unsigned char block[BLOCK_SIZE_BYTES];
 } block_t;
 
-// typedef struct block_store
-// {
-//     bitmap_t *bitmap;
-//     char blocks[BLOCK_STORE_AVAIL_BLOCKS][BLOCK_STORE_AVAIL_BLOCKS];
-// } block_store_t;
-
 typedef struct block_store
 {
     bitmap_t * bitmap;
@@ -81,7 +75,7 @@ size_t block_store_allocate(block_store_t *const bs)
 
     size_t block_id = bitmap_ffz(bs->bitmap);
 
-    if (block_id >= (BLOCK_STORE_AVAIL_BLOCKS) || block_id == SIZE_MAX)
+    if (block_id >= (BLOCK_STORE_NUM_BLOCKS - bs->bitmap_blocks) || block_id == SIZE_MAX)
     {
         return SIZE_MAX;
     }
@@ -92,7 +86,7 @@ size_t block_store_allocate(block_store_t *const bs)
 
 bool block_store_request(block_store_t *const bs, const size_t block_id)
 {
-    if (bs == NULL || bs->bitmap == NULL || block_id >= (BLOCK_STORE_AVAIL_BLOCKS) || bitmap_test(bs->bitmap, block_id))
+    if (bs == NULL || bs->bitmap == NULL || block_id >= (BLOCK_STORE_NUM_BLOCKS - bs->bitmap_blocks) || bitmap_test(bs->bitmap, block_id))
     {
         return false;
     }
@@ -103,7 +97,7 @@ bool block_store_request(block_store_t *const bs, const size_t block_id)
 
 void block_store_release(block_store_t *const bs, const size_t block_id)
 {
-    if (bs == NULL || block_id >= (BLOCK_STORE_AVAIL_BLOCKS))
+    if (bs == NULL || block_id >= (BLOCK_STORE_NUM_BLOCKS - bs->bitmap_blocks))
     {
         return;
     }
@@ -126,23 +120,27 @@ size_t block_store_get_free_blocks(const block_store_t *const bs)
     {
         return SIZE_MAX;
     }
-    return (BLOCK_STORE_AVAIL_BLOCKS) - block_store_get_used_blocks(bs);
+    // if i use the available blocks which subtracts 1 it works but that wouldnt make sense
+    // conceptually since I already subtract the one block in the get used method
+    return (BLOCK_STORE_NUM_BLOCKS) - block_store_get_used_blocks(bs);
 }
 
 size_t block_store_get_total_blocks()
 {
+    // technically this isnt really true you would want to subtract the blocks used by the bitmap
+    // currently its hard coded by the definition to only use 1 block for the bitmap
     return (BLOCK_STORE_AVAIL_BLOCKS);
 }
 
 size_t block_store_read(const block_store_t *const bs, const size_t block_id, void *buffer)
 {
-    if (bs == NULL || buffer == NULL || block_id > (BLOCK_STORE_AVAIL_BLOCKS) || block_id == 0)
+    if (bs == NULL || buffer == NULL || block_id >= (BLOCK_STORE_NUM_BLOCKS - bs->bitmap_blocks) || block_id == 0)
     {
         return 0;
     }
 
     // turn into void pointer
-    memcpy(buffer, &(bs->blocks)[block_id], BLOCK_STORE_NUM_BLOCKS);
+    memcpy(buffer, &((bs->blocks)[block_id]), BLOCK_SIZE_BYTES);
 
     return BLOCK_STORE_NUM_BLOCKS;
 }
@@ -155,7 +153,7 @@ size_t block_store_write(block_store_t *const bs, const size_t block_id, const v
     }
 
     // make into a void pointer
-    memcpy(&(bs->blocks)[block_id], buffer, BLOCK_STORE_NUM_BLOCKS);
+    memcpy(&((bs->blocks)[block_id]), buffer, BLOCK_SIZE_BYTES);
     return BLOCK_STORE_NUM_BLOCKS;
 }
 
@@ -174,7 +172,7 @@ block_store_t *block_store_deserialize(const char *const filename)
         return NULL;
     }
 
-    read(file, bs->blocks, BLOCK_STORE_NUM_BLOCKS * BLOCK_STORE_NUM_BLOCKS);
+    read(file, bs->blocks, BLOCK_STORE_NUM_BLOCKS*BLOCK_STORE_NUM_BLOCKS);
     close(file);
     return bs;
 }
@@ -193,7 +191,7 @@ size_t block_store_serialize(const block_store_t *const bs, const char *const fi
         return 0;
     }
 
-    size_t bytes_written = write(file, bs->blocks, BLOCK_STORE_NUM_BLOCKS * BLOCK_STORE_NUM_BLOCKS);
+    size_t bytes_written = write(file, bs->blocks, BLOCK_STORE_NUM_BLOCKS*BLOCK_STORE_NUM_BLOCKS);
 
     close(file);
     return bytes_written;
