@@ -172,7 +172,7 @@ block_store_t *block_store_deserialize(const char *const filename)
         return NULL;
     }
 
-    read(file, bs->blocks, BLOCK_STORE_NUM_BLOCKS*BLOCK_STORE_NUM_BLOCKS);
+    read(file, bs->blocks, BLOCK_STORE_NUM_BYTES);
     close(file);
     return bs;
 }
@@ -191,7 +191,7 @@ size_t block_store_serialize(const block_store_t *const bs, const char *const fi
         return 0;
     }
 
-    size_t bytes_written = write(file, bs->blocks, BLOCK_STORE_NUM_BLOCKS*BLOCK_STORE_NUM_BLOCKS);
+    size_t bytes_written = write(file, bs->blocks, BLOCK_STORE_NUM_BYTES);
 
     close(file);
     return bytes_written;
