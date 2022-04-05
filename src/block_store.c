@@ -118,6 +118,7 @@ size_t block_store_get_free_blocks(const block_store_t *const bs)
     }
     // if i use the available blocks which subtracts 1 it works but that wouldnt make sense
     // conceptually since I already subtract the one block in the get used method
+    // tests will try to say that (BLOCK_STORE_AVAIL_BLOCKS) - 1 != (256 - 1) - 1 == 254 and that 254 != 254
     return (BLOCK_STORE_NUM_BLOCKS) - block_store_get_used_blocks(bs);
 }
 
