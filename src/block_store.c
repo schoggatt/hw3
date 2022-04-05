@@ -30,8 +30,8 @@ typedef struct block_store
 /// \return Pointer to a new block storage device, NULL on error
 block_store_t *block_store_create()
 {
-    // malloc
-    block_store_t *bs = (block_store_t *)malloc(sizeof(block_store_t));
+    // calloc
+    block_store_t *bs = (block_store_t *)calloc(1, sizeof(block_store_t));
 
     // checks that the malloc was successful
     if (bs == NULL)
@@ -70,13 +70,9 @@ void block_store_destroy(block_store_t *const bs)
     // check that block store exists
     if (bs != NULL)
     {
-        // check that bitmap exists
-        if (bs->bitmap != NULL)
-        {
-            // destruct and destroy bitmap
-            bitmap_destroy(bs->bitmap);
-        }
-        // unallocate block store memory
+        // destruct and destroy bitmap
+        bitmap_destroy(bs->bitmap);
+        // unallocate the block store memory
         free(bs);
     }
 }
@@ -196,7 +192,7 @@ size_t block_store_read(const block_store_t *const bs, const size_t block_id, vo
     memcpy(buffer, &((bs->blocks)[block_id]), BLOCK_SIZE_BYTES);
 
     // number of bytes read
-    return BLOCK_STORE_NUM_BLOCKS;
+    return BLOCK_SIZE_BYTES;
 }
 
 /// Reads data from the specified buffer and writes it to the designated block
@@ -216,7 +212,7 @@ size_t block_store_write(block_store_t *const bs, const size_t block_id, const v
     memcpy(&((bs->blocks)[block_id]), buffer, BLOCK_SIZE_BYTES);
 
     // number of bytes written
-    return BLOCK_STORE_NUM_BLOCKS;
+    return BLOCK_SIZE_BYTES;
 }
 
 /// Imports BS device from the given file
@@ -237,7 +233,7 @@ block_store_t *block_store_deserialize(const char *const filename)
         return NULL;
     }
 
-    read(file, bs->blocks, BLOCK_STORE_NUM_BLOCKS * BLOCK_STORE_NUM_BLOCKS);
+    read(file, bs->blocks, BLOCK_STORE_NUM_BYTES);
     close(file);
     return bs;
 }
@@ -260,7 +256,7 @@ size_t block_store_serialize(const block_store_t *const bs, const char *const fi
         return 0;
     }
 
-    size_t bytes_written = write(file, bs->blocks, BLOCK_STORE_NUM_BLOCKS * BLOCK_STORE_NUM_BLOCKS);
+    size_t bytes_written = write(file, bs->blocks, BLOCK_STORE_NUM_BYTES);
 
     close(file);
     return bytes_written;
