@@ -28,8 +28,7 @@ typedef struct block_store
 
 block_store_t *block_store_create()
 {
-    // calloc
-    block_store_t *bs = (block_store_t *)malloc(sizeof(block_store_t));
+    block_store_t *bs = (block_store_t *)calloc(1, sizeof(block_store_t));
 
     if (bs == NULL)
     {
@@ -59,10 +58,7 @@ void block_store_destroy(block_store_t *const bs)
 {
     if (bs != NULL)
     {
-        if(bs->bitmap != NULL)
-        {
-            bitmap_destroy(bs->bitmap);
-        }
+        bitmap_destroy(bs->bitmap);
         free(bs);
     }
 }
@@ -79,7 +75,7 @@ size_t block_store_allocate(block_store_t *const bs)
     {
         return SIZE_MAX;
     }
-
+    
     bitmap_set(bs->bitmap, block_id);
     return block_id;
 }
@@ -141,8 +137,7 @@ size_t block_store_read(const block_store_t *const bs, const size_t block_id, vo
 
     // turn into void pointer
     memcpy(buffer, &((bs->blocks)[block_id]), BLOCK_SIZE_BYTES);
-
-    return BLOCK_STORE_NUM_BLOCKS;
+    return BLOCK_SIZE_BYTES;
 }
 
 size_t block_store_write(block_store_t *const bs, const size_t block_id, const void *buffer)
@@ -154,7 +149,7 @@ size_t block_store_write(block_store_t *const bs, const size_t block_id, const v
 
     // make into a void pointer
     memcpy(&((bs->blocks)[block_id]), buffer, BLOCK_SIZE_BYTES);
-    return BLOCK_STORE_NUM_BLOCKS;
+    return BLOCK_SIZE_BYTES;
 }
 
 block_store_t *block_store_deserialize(const char *const filename)
