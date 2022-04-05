@@ -1,0 +1,5 @@
+/homes/rcody720/hw3/build/CMakeFiles/rebuild_cache.dir
+/homes/rcody720/hw3/build/CMakeFiles/edit_cache.dir
+/homes/rcody720/hw3/build/CMakeFiles/hw3_test.dir
+/homes/rcody720/hw3/build/CMakeFiles/block_store.dir
+/homes/rcody720/hw3/build/CMakeFiles/bitmap.dir
