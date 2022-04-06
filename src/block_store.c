@@ -221,19 +221,25 @@ size_t block_store_write(block_store_t *const bs, const size_t block_id, const v
 /// \return Pointer to new BS device, NULL on error
 block_store_t *block_store_deserialize(const char *const filename)
 {
+    // check for invalid parameters
     if (filename == NULL)
     {
         return NULL;
     }
 
+    //initialize blockstore
     block_store_t *bs = block_store_create();
+
+    //file that we are importing from
     int file = open(filename, O_RDONLY);
 
+    //if file is invalid
     if (file == -1)
     {
         return NULL;
     }
 
+    //read in file to blockstore
     read(file, bs->blocks, BLOCK_STORE_NUM_BYTES);
     close(file);
     return bs;
@@ -245,18 +251,22 @@ block_store_t *block_store_deserialize(const char *const filename)
 /// \return Number of bytes written, 0 on error
 size_t block_store_serialize(const block_store_t *const bs, const char *const filename)
 {
+    // check for invalid parameters
     if (filename == NULL || bs == NULL)
     {
         return 0;
     }
 
+    // file that we are importing from
     int file = open(filename, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
 
+    //if file is invalid
     if (file == -1)
     {
         return 0;
     }
 
+    //writes BS to file
     size_t bytes_written = write(file, bs->blocks, BLOCK_STORE_NUM_BYTES);
 
     close(file);
