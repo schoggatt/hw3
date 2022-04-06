@@ -16,7 +16,8 @@ extern "C"
 #define BLOCK_SIZE_BYTES 256         // 2^8 BYTES per block
 #define BLOCK_SIZE_BITS (BLOCK_SIZE_BYTES*8)
 #define BLOCK_STORE_NUM_BYTES (BLOCK_STORE_NUM_BLOCKS * BLOCK_SIZE_BYTES)
-#define BITMAP_START_BLOCK 127   
+#define BITMAP_START_BLOCK 127
+#define REQUIRED_BITMAP_BLOCKS (BLOCK_STORE_NUM_BLOCKS / 8) / 32   
 
 
 	// Declaring the struct but not implementing in the header allows us to prevent users

@@ -43,15 +43,12 @@ block_store_t *block_store_create()
     bs->bitmap = bitmap_overlay(BLOCK_STORE_NUM_BLOCKS, &((bs->blocks)[BITMAP_START_BLOCK]));
 
     // loop through the bitmap and attempt to allocate the block id
-    uint32_t required_blocks = (BLOCK_STORE_NUM_BLOCKS / 8) / 32;
     uint32_t bitmap_index;
-    for (bitmap_index = BITMAP_START_BLOCK; bitmap_index < BITMAP_START_BLOCK + required_blocks; bitmap_index++)
+    for (bitmap_index = BITMAP_START_BLOCK; bitmap_index < BITMAP_START_BLOCK + REQUIRED_BITMAP_BLOCKS; bitmap_index++)
     {
         if (!block_store_request(bs, bitmap_index))
             break;
     }
-
-    bs->bitmap_blocks = required_blocks;
 
     // check for null bitmap
     if (bs->bitmap == NULL)
@@ -92,7 +89,7 @@ size_t block_store_allocate(block_store_t *const bs)
     size_t block_id = bitmap_ffz(bs->bitmap);
 
     // check for out of bounds block id
-    if (block_id >= (BLOCK_STORE_NUM_BLOCKS - bs->bitmap_blocks) || block_id == SIZE_MAX)
+    if (block_id >= (BLOCK_STORE_NUM_BLOCKS - REQUIRED_BITMAP_BLOCKS) || block_id == SIZE_MAX)
     {
         return SIZE_MAX;
     }
@@ -110,7 +107,7 @@ size_t block_store_allocate(block_store_t *const bs)
 bool block_store_request(block_store_t *const bs, const size_t block_id)
 {
     // check for invalid parameters
-    if (bs == NULL || bs->bitmap == NULL || block_id >= (BLOCK_STORE_NUM_BLOCKS - bs->bitmap_blocks) || bitmap_test(bs->bitmap, block_id))
+    if (bs == NULL || bs->bitmap == NULL || block_id >= (BLOCK_STORE_NUM_BLOCKS - REQUIRED_BITMAP_BLOCKS) || bitmap_test(bs->bitmap, block_id))
     {
         return false;
     }
@@ -126,7 +123,7 @@ bool block_store_request(block_store_t *const bs, const size_t block_id)
 void block_store_release(block_store_t *const bs, const size_t block_id)
 {
     // check for invalid parameters
-    if (bs == NULL || block_id >= (BLOCK_STORE_NUM_BLOCKS - bs->bitmap_blocks))
+    if (bs == NULL || block_id >= (BLOCK_STORE_NUM_BLOCKS - REQUIRED_BITMAP_BLOCKS))
     {
         return;
     }
@@ -147,7 +144,7 @@ size_t block_store_get_used_blocks(const block_store_t *const bs)
     }
 
     // the number of set bits in the bitmap
-    return bitmap_total_set(bs->bitmap) - (bs->bitmap_blocks);
+    return bitmap_total_set(bs->bitmap) - (REQUIRED_BITMAP_BLOCKS);
 }
 
 /// Counts the number of blocks marked free for use
@@ -173,7 +170,7 @@ size_t block_store_get_total_blocks()
 {
     // technically this isnt really true you would want to subtract the blocks used by the bitmap
     // currently its hard coded by the definition to only use 1 block for the bitmap
-    return (BLOCK_STORE_AVAIL_BLOCKS);
+    return (BLOCK_STORE_NUM_BLOCKS - REQUIRED_BITMAP_BLOCKS);
 }
 
 /// Reads data from the specified block and writes it to the designated buffer
@@ -184,7 +181,7 @@ size_t block_store_get_total_blocks()
 size_t block_store_read(const block_store_t *const bs, const size_t block_id, void *buffer)
 {
     // check for invalid parameters
-    if (bs == NULL || buffer == NULL || block_id >= (BLOCK_STORE_NUM_BLOCKS - bs->bitmap_blocks) || block_id == 0)
+    if (bs == NULL || buffer == NULL || block_id >= (BLOCK_STORE_NUM_BLOCKS - REQUIRED_BITMAP_BLOCKS) || block_id == 0)
     {
         return 0;
     }
