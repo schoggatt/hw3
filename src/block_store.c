@@ -23,7 +23,6 @@ typedef struct block_store
 {
     bitmap_t *bitmap;
     block_t blocks[BLOCK_STORE_NUM_BLOCKS];
-    uint32_t bitmap_blocks;
 } block_store_t;
 
 /// This creates a new BS device, ready to go
@@ -168,7 +167,7 @@ size_t block_store_get_free_blocks(const block_store_t *const bs)
 /// \return Total blocks
 size_t block_store_get_total_blocks()
 {
-    return (BLOCK_STORE_NUM_BLOCKS - REQUIRED_BITMAP_BLOCKS);
+    return (BLOCK_STORE_AVAIL_BLOCKS);
 }
 
 /// Reads data from the specified block and writes it to the designated buffer
