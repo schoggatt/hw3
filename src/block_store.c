@@ -89,7 +89,7 @@ size_t block_store_allocate(block_store_t *const bs)
     size_t block_id = bitmap_ffz(bs->bitmap);
 
     // check for out of bounds block id
-    if (block_id >= (BLOCK_STORE_NUM_BLOCKS - REQUIRED_BITMAP_BLOCKS) || block_id == SIZE_MAX)
+    if (block_id > (BLOCK_STORE_AVAIL_BLOCKS) || block_id == SIZE_MAX)
     {
         return SIZE_MAX;
     }
@@ -107,7 +107,7 @@ size_t block_store_allocate(block_store_t *const bs)
 bool block_store_request(block_store_t *const bs, const size_t block_id)
 {
     // check for invalid parameters
-    if (bs == NULL || bs->bitmap == NULL || block_id >= (BLOCK_STORE_NUM_BLOCKS - REQUIRED_BITMAP_BLOCKS) || bitmap_test(bs->bitmap, block_id))
+    if (bs == NULL || bs->bitmap == NULL || block_id > (BLOCK_STORE_AVAIL_BLOCKS) || bitmap_test(bs->bitmap, block_id))
     {
         return false;
     }
@@ -123,7 +123,7 @@ bool block_store_request(block_store_t *const bs, const size_t block_id)
 void block_store_release(block_store_t *const bs, const size_t block_id)
 {
     // check for invalid parameters
-    if (bs == NULL || block_id >= (BLOCK_STORE_NUM_BLOCKS - REQUIRED_BITMAP_BLOCKS))
+    if (bs == NULL || block_id > (BLOCK_STORE_AVAIL_BLOCKS))
     {
         return;
     }
@@ -179,7 +179,7 @@ size_t block_store_get_total_blocks()
 size_t block_store_read(const block_store_t *const bs, const size_t block_id, void *buffer)
 {
     // check for invalid parameters
-    if (bs == NULL || buffer == NULL || block_id >= (BLOCK_STORE_NUM_BLOCKS - REQUIRED_BITMAP_BLOCKS) || block_id == 0)
+    if (bs == NULL || buffer == NULL || block_id > (BLOCK_STORE_AVAIL_BLOCKS) || block_id == 0)
     {
         return 0;
     }
