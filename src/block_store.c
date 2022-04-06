@@ -168,8 +168,6 @@ size_t block_store_get_free_blocks(const block_store_t *const bs)
 /// \return Total blocks
 size_t block_store_get_total_blocks()
 {
-    // technically this isnt really true you would want to subtract the blocks used by the bitmap
-    // currently its hard coded by the definition to only use 1 block for the bitmap
     return (BLOCK_STORE_NUM_BLOCKS - REQUIRED_BITMAP_BLOCKS);
 }
 
