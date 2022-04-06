@@ -230,6 +230,7 @@ block_store_t *block_store_deserialize(const char *const filename)
     //if file is invalid
     if (file == -1)
     {
+        block_store_destroy(bs);
         return NULL;
     }
 
