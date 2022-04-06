@@ -250,7 +250,7 @@ size_t block_store_serialize(const block_store_t *const bs, const char *const fi
         return 0;
     }
 
-    int file = creat(filename, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+    int file = open(filename, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
 
     if (file == -1)
     {

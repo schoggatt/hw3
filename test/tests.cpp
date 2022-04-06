@@ -341,8 +341,6 @@ TEST(block_store_serialize, valid_serialize)
     free(write_buffer);
     block_store_destroy(bs);
 
-    remove("test.bs");
-
     score += 10;
 }
 
@@ -379,8 +377,6 @@ TEST(block_store_serialize, check_file_size)
     struct stat st;
     stat("test.bs", &st);
     ASSERT_EQ(st.st_size,BLOCK_STORE_NUM_BYTES);
-
-    remove("test.bs");
 
     score += 4;
 }
@@ -474,8 +470,6 @@ TEST(block_store_deserialize, valid_deserialize)
     free(read_buffer);
     free(write_buffer);
     block_store_destroy(bsRead);
-
-    remove("test.bs");
 
     score += 12;
 }
